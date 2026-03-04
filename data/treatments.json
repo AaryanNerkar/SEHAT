@@ -1,0 +1,65 @@
+{
+  "Potato___Early_blight": {
+    "treatment": [
+      "Remove infected leaves",
+      "Apply Chlorothalonil fungicide",
+      "Avoid overhead irrigation"
+    ]
+  },
+
+  "Potato___Late_blight": {
+    "treatment": [
+      "Remove infected plants",
+      "Apply Mancozeb fungicide",
+      "Improve field drainage"
+    ]
+  },
+
+  "Potato___healthy": {
+    "treatment": [
+      "Plant is healthy",
+      "Maintain regular watering",
+      "Monitor leaves regularly"
+    ]
+  },
+
+  "Tomato_Early_blight": {
+    "treatment": [
+      "Remove infected leaves",
+      "Apply Chlorothalonil fungicide",
+      "Ensure proper plant spacing"
+    ]
+  },
+
+  "Tomato_Septoria_leaf_spot": {
+    "treatment": [
+      "Remove infected leaves",
+      "Apply copper-based fungicide",
+      "Avoid wetting leaves while watering"
+    ]
+  },
+
+  "Apple_rust": {
+    "treatment": [
+      "Remove nearby cedar trees",
+      "Apply fungicide during early spring",
+      "Remove infected leaves"
+    ]
+  },
+
+  "Apple_healthy": {
+    "treatment": [
+      "Tree is healthy",
+      "Maintain pruning schedule",
+      "Monitor leaves regularly"
+    ]
+  },
+
+  "Onion_purple_blotch": {
+    "treatment": [
+      "Apply fungicide like Mancozeb",
+      "Improve air circulation",
+      "Avoid excess moisture"
+    ]
+  }
+}

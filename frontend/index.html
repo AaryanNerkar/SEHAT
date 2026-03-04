@@ -1,0 +1,1123 @@
+<!doctype html>
+<html lang="en" class="transition-colors duration-300">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=5.0"
+    />
+    <title>SEHAT — AI Plant Disease Detection</title>
+    <meta
+      name="description"
+      content="SEHAT: Upload a leaf photo to instantly detect crop diseases and get treatment recommendations. Powered by AI for farmers."
+    />
+    <meta name="theme-color" content="#166534" />
+
+    <!-- Preconnect for Performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              sehat: {
+                green: "#166534",
+                greenMid: "#22c55e",
+                greenLight: "#dcfce7",
+                bg: "#f8faf8",
+                accent: "#ea580c",
+                amber: "#f59e0b",
+                text: "#1e293b",
+              },
+            },
+            fontFamily: {
+              sans: ['"Plus Jakarta Sans"', "system-ui", "sans-serif"],
+            },
+            animation: {
+              float: "float 8s ease-in-out infinite alternate",
+              "float-delayed": "float 10s ease-in-out 3s infinite alternate",
+              "pulse-slow": "pulse 3s ease-in-out infinite",
+              "slide-up": "slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+              "slide-right":
+                "slideRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+              "fade-in": "fadeIn 0.5s ease-out forwards",
+              "scale-in": "scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+              progress: "progress 2.5s ease-in-out infinite",
+              "spin-slow": "spin 2s linear infinite",
+            },
+            keyframes: {
+              float: {
+                "0%": { transform: "translate(0, 0) scale(1) rotate(0deg)" },
+                "100%": {
+                  transform: "translate(30px, -40px) scale(1.15) rotate(3deg)",
+                },
+              },
+              slideUp: {
+                "0%": { opacity: "0", transform: "translateY(24px)" },
+                "100%": { opacity: "1", transform: "translateY(0)" },
+              },
+              slideRight: {
+                "0%": { opacity: "0", transform: "translateX(24px)" },
+                "100%": { opacity: "1", transform: "translateX(0)" },
+              },
+              fadeIn: {
+                "0%": { opacity: "0" },
+                "100%": { opacity: "1" },
+              },
+              scaleIn: {
+                "0%": { opacity: "0", transform: "scale(0.9)" },
+                "100%": { opacity: "1", transform: "scale(1)" },
+              },
+              progress: {
+                "0%": { width: "0%" },
+                "50%": { width: "70%" },
+                "100%": { width: "100%" },
+              },
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- Theme: prevent FOUC -->
+    <script>
+      if (
+        localStorage.getItem("sehat-theme") === "dark" ||
+        (!("sehat-theme" in localStorage) &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches)
+      ) {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+      /* Dropzone active state */
+      .dropzone-active {
+        border-color: #22c55e !important;
+        background-color: #dcfce7 !important;
+        transform: scale(1.02);
+      }
+      html.dark .dropzone-active {
+        background-color: rgba(34, 197, 94, 0.12) !important;
+      }
+
+      /* Hidden state utility */
+      .hidden-state {
+        display: none !important;
+      }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 99px;
+      }
+      html.dark ::-webkit-scrollbar-thumb {
+        background: #475569;
+      }
+
+      /* Confidence ring */
+      .confidence-ring {
+        width: 88px;
+        height: 88px;
+      }
+      .confidence-ring circle {
+        transition: stroke-dashoffset 1s ease-out;
+      }
+
+      /* Shimmer on healthy badge */
+      @keyframes shimmer {
+        0% {
+          background-position: -200% 0;
+        }
+        100% {
+          background-position: 200% 0;
+        }
+      }
+      .shimmer-text {
+        background: linear-gradient(
+          90deg,
+          #22c55e 40%,
+          #86efac 50%,
+          #22c55e 60%
+        );
+        background-size: 200% 100%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: shimmer 3s linear infinite;
+      }
+
+      /* Print */
+      @media print {
+        body {
+          background: white !important;
+          color: black !important;
+        }
+        header,
+        footer,
+        .no-print,
+        .blob-bg {
+          display: none !important;
+        }
+        #resultArea {
+          box-shadow: none !important;
+          border: 1px solid #ddd;
+        }
+      }
+
+      /* Smooth image preview */
+      #imagePreview {
+        transition: opacity 0.3s ease;
+      }
+    </style>
+  </head>
+  <body
+    class="min-h-screen flex flex-col font-sans bg-sehat-bg dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300 relative overflow-x-hidden"
+  >
+    <!-- Decorative Blobs -->
+    <div class="blob-bg">
+      <div
+        class="fixed -top-32 -left-32 w-[500px] h-[500px] bg-green-200/40 dark:bg-green-900/20 rounded-full blur-3xl animate-float pointer-events-none"
+      ></div>
+      <div
+        class="fixed -bottom-24 -right-24 w-[400px] h-[400px] bg-emerald-100/50 dark:bg-emerald-900/15 rounded-full blur-3xl animate-float-delayed pointer-events-none"
+      ></div>
+      <div
+        class="fixed top-1/3 left-1/2 w-[300px] h-[300px] bg-amber-50/40 dark:bg-orange-900/10 rounded-full blur-3xl animate-pulse-slow pointer-events-none"
+      ></div>
+    </div>
+
+    <!-- ═══════════════════════ HEADER ═══════════════════════ -->
+    <header
+      class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl border-b border-gray-200/60 dark:border-gray-800/60 py-3 px-4 sm:px-6 sticky top-0 z-50 transition-colors duration-300"
+    >
+      <div class="max-w-2xl mx-auto flex items-center justify-between">
+        <!-- Logo -->
+        <div class="flex items-center gap-2.5">
+          <div
+            class="bg-gradient-to-br from-green-600 to-emerald-500 p-2 rounded-xl shadow-lg shadow-green-600/20 text-white"
+          >
+            <i data-lucide="leaf" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+          </div>
+          <div>
+            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight">
+              <span
+                class="bg-clip-text text-transparent bg-gradient-to-r from-green-700 to-emerald-500 dark:from-green-400 dark:to-emerald-400"
+                >SEHAT</span
+              >
+            </h1>
+            <p
+              class="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 -mt-0.5 hidden sm:block"
+            >
+              AI Crop Disease Detection
+            </p>
+          </div>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button
+          id="themeToggleBtn"
+          class="p-2 sm:p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500/40"
+          aria-label="Toggle Dark Mode"
+        >
+          <i id="themeIcon" data-lucide="moon" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- ═══════════════════════ MAIN ═══════════════════════ -->
+    <main
+      class="flex-grow flex flex-col items-center px-4 sm:px-6 py-6 sm:py-10 relative z-10 w-full"
+    >
+      <!-- Hero Text -->
+      <div class="max-w-xl w-full text-center mb-6 sm:mb-8 animate-slide-up">
+        <h2
+          class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-gray-900 dark:text-white leading-tight mb-3"
+        >
+          Identify Plant<br class="sm:hidden" />
+          Diseases
+          <span class="text-green-600 dark:text-green-400">Instantly</span>
+        </h2>
+        <p
+          class="text-gray-500 dark:text-gray-400 text-base sm:text-lg font-medium max-w-md mx-auto leading-relaxed"
+        >
+          Snap a leaf photo and get AI-powered diagnosis with actionable
+          treatment in seconds.
+        </p>
+      </div>
+
+      <!-- Progress Stepper -->
+      <div
+        class="w-full max-w-md mb-6 sm:mb-8 px-6 no-print animate-fade-in"
+        style="animation-delay: 0.2s"
+      >
+        <div class="flex justify-between items-center relative">
+          <!-- Background Line -->
+          <div
+            class="absolute left-[20px] right-[20px] top-[20px] h-0.5 bg-gray-200 dark:bg-gray-700 rounded-full"
+          ></div>
+          <!-- Active Line -->
+          <div
+            id="step-line"
+            class="absolute left-[20px] top-[20px] h-0.5 bg-green-500 transition-all duration-700 ease-out rounded-full"
+            style="width: 0%"
+          ></div>
+
+          <!-- Step 1 -->
+          <div class="flex flex-col items-center gap-1.5 z-10" id="step1-wrap">
+            <div
+              id="step1-icon"
+              class="w-10 h-10 rounded-full bg-green-600 text-white flex items-center justify-center text-sm font-bold shadow-lg shadow-green-600/30 transition-all duration-300"
+            >
+              1
+            </div>
+            <span
+              class="text-[10px] sm:text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wider"
+              >Upload</span
+            >
+          </div>
+          <!-- Step 2 -->
+          <div class="flex flex-col items-center gap-1.5 z-10" id="step2-wrap">
+            <div
+              id="step2-icon"
+              class="w-10 h-10 rounded-full bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 text-gray-400 flex items-center justify-center text-sm font-bold transition-all duration-300"
+            >
+              2
+            </div>
+            <span
+              id="step2-text"
+              class="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider transition-colors"
+              >Analyze</span
+            >
+          </div>
+          <!-- Step 3 -->
+          <div class="flex flex-col items-center gap-1.5 z-10" id="step3-wrap">
+            <div
+              id="step3-icon"
+              class="w-10 h-10 rounded-full bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 text-gray-400 flex items-center justify-center text-sm font-bold transition-all duration-300"
+            >
+              3
+            </div>
+            <span
+              id="step3-text"
+              class="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider transition-colors"
+              >Results</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════ MAIN CARD ═══════════ -->
+      <div
+        class="w-full max-w-xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-3xl shadow-2xl shadow-gray-900/[0.06] dark:shadow-black/30 border border-gray-200/80 dark:border-gray-800/80 overflow-hidden relative transition-colors duration-300 animate-scale-in"
+        style="animation-delay: 0.15s"
+      >
+        <!-- Toast Notification -->
+        <div
+          id="toast"
+          class="absolute top-3 left-3 right-3 bg-red-50/95 dark:bg-red-950/95 backdrop-blur-lg text-red-700 dark:text-red-300 p-3.5 rounded-2xl flex items-center gap-3 hidden-state z-50 shadow-xl border border-red-200/60 dark:border-red-800/40 animate-slide-up"
+        >
+          <div
+            class="bg-red-100 dark:bg-red-900/60 p-1.5 rounded-lg flex-shrink-0"
+          >
+            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+          </div>
+          <span id="toastMessage" class="text-sm font-semibold flex-1"
+            >Unable to connect. Check your connection.</span
+          >
+          <button
+            onclick="hideError()"
+            class="hover:bg-red-100 dark:hover:bg-red-900/40 p-1.5 rounded-lg transition-colors flex-shrink-0"
+          >
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <!-- ───── STEP 1: UPLOAD ───── -->
+        <div id="uploadArea" class="p-5 sm:p-8">
+          <div
+            id="dropzone"
+            class="border-2 border-dashed border-gray-300 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30 rounded-2xl p-8 sm:p-12 flex flex-col items-center justify-center text-center cursor-pointer hover:border-green-400 dark:hover:border-green-500 hover:bg-green-50/40 dark:hover:bg-green-900/10 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-green-500/20 group relative"
+            tabindex="0"
+          >
+            <div
+              class="bg-gradient-to-br from-green-100 to-emerald-50 dark:from-green-900/40 dark:to-emerald-900/20 p-4 sm:p-5 rounded-2xl mb-5 group-hover:scale-110 group-hover:-translate-y-1 transition-all duration-300 shadow-sm"
+            >
+              <i
+                data-lucide="camera"
+                class="w-8 h-8 sm:w-10 sm:h-10 text-green-600 dark:text-green-400"
+              ></i>
+            </div>
+            <h3
+              class="text-lg sm:text-xl font-bold mb-1.5 text-gray-800 dark:text-gray-100"
+            >
+              Tap to upload leaf photo
+            </h3>
+            <p
+              class="text-sm text-gray-400 dark:text-gray-500 mb-6 font-medium"
+            >
+              or drag and drop • JPG / PNG • Max 10 MB
+            </p>
+
+            <input
+              type="file"
+              id="fileInput"
+              accept="image/jpeg, image/png"
+              capture="environment"
+              class="hidden"
+              aria-hidden="true"
+            />
+
+            <button
+              class="bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white px-6 py-3 sm:px-8 sm:py-3.5 rounded-xl font-bold text-sm sm:text-base transition-all duration-200 shadow-lg shadow-green-600/25 hover:shadow-xl hover:shadow-green-600/30 transform hover:-translate-y-0.5 flex items-center gap-2"
+            >
+              <i data-lucide="upload" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+              Open Camera / Gallery
+            </button>
+          </div>
+
+          <!-- Supported Crops -->
+          <div class="mt-6 sm:mt-8">
+            <p
+              class="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest text-center mb-3"
+            >
+              Supported Crops
+            </p>
+            <div class="flex flex-wrap justify-center gap-1.5 sm:gap-2">
+              <span
+                class="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-green-50 dark:bg-green-900/20 border border-green-200/60 dark:border-green-800/40 rounded-lg text-xs sm:text-sm font-semibold text-green-700 dark:text-green-400 flex items-center gap-1"
+              >
+                <i data-lucide="check" class="w-3 h-3"></i> Tomato
+              </span>
+              <span
+                class="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-green-50 dark:bg-green-900/20 border border-green-200/60 dark:border-green-800/40 rounded-lg text-xs sm:text-sm font-semibold text-green-700 dark:text-green-400 flex items-center gap-1"
+              >
+                <i data-lucide="check" class="w-3 h-3"></i> Potato
+              </span>
+              <span
+                class="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-green-50 dark:bg-green-900/20 border border-green-200/60 dark:border-green-800/40 rounded-lg text-xs sm:text-sm font-semibold text-green-700 dark:text-green-400 flex items-center gap-1"
+              >
+                <i data-lucide="check" class="w-3 h-3"></i> Apple
+              </span>
+              <span
+                class="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-green-50 dark:bg-green-900/20 border border-green-200/60 dark:border-green-800/40 rounded-lg text-xs sm:text-sm font-semibold text-green-700 dark:text-green-400 flex items-center gap-1"
+              >
+                <i data-lucide="check" class="w-3 h-3"></i> Onion
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ───── STEP 2: PREVIEW ───── -->
+        <div id="previewArea" class="hidden-state p-5 sm:p-8">
+          <div class="flex justify-between items-center mb-4">
+            <h3
+              class="font-bold text-gray-800 dark:text-gray-100 text-lg sm:text-xl"
+            >
+              Confirm Image
+            </h3>
+            <button
+              id="removeBtn"
+              class="text-sm text-red-500 hover:text-red-600 dark:text-red-400 font-bold flex items-center gap-1 transition-colors px-3 py-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl"
+            >
+              <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Retake
+            </button>
+          </div>
+          <div
+            class="bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden flex justify-center items-center h-64 sm:h-80 mb-6 relative shadow-inner"
+          >
+            <img
+              id="imagePreview"
+              src=""
+              alt="Selected leaf preview"
+              class="max-h-full max-w-full object-contain rounded-xl"
+            />
+          </div>
+          <button
+            id="analyzeBtn"
+            class="w-full bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white py-3.5 sm:py-4 rounded-xl font-bold text-base sm:text-lg transition-all duration-200 shadow-xl shadow-green-600/25 hover:shadow-2xl transform hover:-translate-y-0.5 flex justify-center items-center gap-2.5"
+          >
+            <i data-lucide="sparkles" class="w-5 h-5"></i>
+            Diagnose Plant
+          </button>
+        </div>
+
+        <!-- ───── STEP 2.5: LOADING ───── -->
+        <div
+          id="loadingArea"
+          class="hidden-state p-8 sm:p-12 text-center flex flex-col items-center justify-center min-h-[24rem]"
+        >
+          <div class="relative mb-8">
+            <div
+              class="absolute inset-0 bg-green-400/30 dark:bg-green-500/20 rounded-full blur-2xl animate-pulse-slow"
+            ></div>
+            <div
+              class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-xl relative z-10 border border-gray-200/50 dark:border-gray-700/50"
+            >
+              <i
+                data-lucide="scan-search"
+                class="w-10 h-10 sm:w-12 sm:h-12 text-green-600 dark:text-green-400 animate-spin-slow"
+              ></i>
+            </div>
+          </div>
+          <h3
+            class="text-xl sm:text-2xl font-extrabold text-gray-900 dark:text-white mb-2"
+          >
+            Analyzing with AI…
+          </h3>
+          <p
+            class="text-gray-400 dark:text-gray-500 font-medium text-sm sm:text-base mb-8"
+          >
+            Classifying crop type and detecting disease patterns
+          </p>
+
+          <!-- Progress bar -->
+          <div
+            class="w-full max-w-xs bg-gray-200 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden"
+          >
+            <div
+              class="bg-gradient-to-r from-green-500 to-emerald-400 h-1.5 rounded-full animate-progress"
+            ></div>
+          </div>
+        </div>
+
+        <!-- ───── STEP 3: RESULTS ───── -->
+        <div id="resultArea" class="hidden-state">
+          <!-- Action buttons -->
+          <div class="absolute top-3 right-3 flex gap-1.5 no-print z-10">
+            <button
+              id="shareBtn"
+              class="p-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur rounded-lg shadow text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors border border-gray-200/60 dark:border-gray-700/60"
+              title="Share Result"
+            >
+              <i data-lucide="share-2" class="w-4 h-4"></i>
+            </button>
+            <button
+              id="printBtn"
+              class="p-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur rounded-lg shadow text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors border border-gray-200/60 dark:border-gray-700/60"
+              title="Print / Save PDF"
+            >
+              <i data-lucide="printer" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <!-- Result Header -->
+          <div
+            class="bg-gradient-to-br from-green-50 via-emerald-50/50 to-white dark:from-green-950/30 dark:via-emerald-950/20 dark:to-gray-900 p-6 sm:p-8 text-center border-b border-green-100/80 dark:border-gray-800 pt-14 relative overflow-hidden"
+          >
+            <!-- Decorative icon -->
+            <i
+              data-lucide="shield-check"
+              class="absolute -right-6 -top-6 w-36 h-36 text-green-100/60 dark:text-green-900/20 -rotate-12 pointer-events-none"
+            ></i>
+
+            <div class="relative z-10">
+              <!-- Badge -->
+              <div
+                class="inline-flex items-center gap-1.5 text-[10px] sm:text-xs text-green-600 dark:text-green-400 font-extrabold uppercase tracking-widest mb-4 bg-white dark:bg-gray-800 px-3.5 py-1 rounded-full shadow border border-green-100 dark:border-gray-700"
+              >
+                <i data-lucide="check-circle-2" class="w-3 h-3"></i>
+                Diagnosis Complete
+              </div>
+
+              <!-- Crop -->
+              <p
+                id="resultCrop"
+                class="text-sm sm:text-base font-bold text-gray-500 dark:text-gray-400 capitalize tracking-wide mb-1"
+              >
+                Crop
+              </p>
+
+              <!-- Disease Name -->
+              <h2
+                id="resultDisease"
+                class="text-3xl sm:text-4xl font-black capitalize tracking-tight leading-tight mb-5 text-amber-600 dark:text-amber-400"
+              >
+                Disease
+              </h2>
+
+              <!-- Confidence Ring -->
+              <div
+                id="confidenceWrap"
+                class="inline-flex flex-col items-center gap-1"
+              >
+                <div class="relative confidence-ring">
+                  <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="42"
+                      fill="none"
+                      stroke-width="6"
+                      class="stroke-gray-200 dark:stroke-gray-700"
+                    ></circle>
+                    <circle
+                      id="confidenceCircle"
+                      cx="50"
+                      cy="50"
+                      r="42"
+                      fill="none"
+                      stroke-width="6"
+                      stroke-linecap="round"
+                      class="stroke-green-500 dark:stroke-green-400"
+                      stroke-dasharray="263.9"
+                      stroke-dashoffset="263.9"
+                    ></circle>
+                  </svg>
+                  <div
+                    class="absolute inset-0 flex items-center justify-center"
+                  >
+                    <span
+                      id="resultConfidence"
+                      class="text-lg sm:text-xl font-extrabold text-green-600 dark:text-green-400"
+                      >0</span
+                    >
+                    <span
+                      class="text-xs font-bold text-green-600 dark:text-green-400"
+                      >%</span
+                    >
+                  </div>
+                </div>
+                <span
+                  class="text-[10px] font-bold text-gray-400 uppercase tracking-wider"
+                  >AI Confidence</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <!-- Treatment Section -->
+          <div class="p-5 sm:p-8">
+            <div class="flex items-center gap-2.5 mb-5">
+              <div
+                class="bg-amber-100 dark:bg-amber-900/30 p-2 rounded-xl text-amber-600 dark:text-amber-400"
+              >
+                <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+              </div>
+              <h3
+                class="font-extrabold text-xl sm:text-2xl text-gray-900 dark:text-white"
+              >
+                Action Plan
+              </h3>
+            </div>
+
+            <ol id="treatmentList" class="space-y-3 mb-8">
+              <!-- Treatments injected dynamically -->
+            </ol>
+
+            <button
+              id="resetBtn"
+              class="no-print w-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 py-3.5 sm:py-4 rounded-xl font-bold text-base sm:text-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 flex justify-center items-center gap-2 border border-gray-200/60 dark:border-gray-700/60"
+            >
+              <i data-lucide="plus-circle" class="w-5 h-5"></i>
+              Scan Another Leaf
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════ SCAN HISTORY ═══════════ -->
+      <div
+        id="historySection"
+        class="w-full max-w-xl mt-8 sm:mt-10 hidden-state no-print"
+      >
+        <h3
+          class="text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2"
+        >
+          <i data-lucide="clock" class="w-4 h-4 text-gray-400"></i>
+          Recent Scans
+        </h3>
+        <div id="historyGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <!-- Cards injected dynamically -->
+        </div>
+        <button
+          id="clearHistoryBtn"
+          class="text-xs text-gray-400 hover:text-red-500 mt-3 font-semibold transition-colors hidden"
+        >
+          Clear history
+        </button>
+      </div>
+
+      <!-- Features Strip (only on upload view) -->
+      <div
+        id="featuresStrip"
+        class="w-full max-w-xl mt-8 sm:mt-10 grid grid-cols-3 gap-3 no-print animate-fade-in"
+        style="animation-delay: 0.4s"
+      >
+        <div
+          class="bg-white/80 dark:bg-gray-900/60 backdrop-blur rounded-2xl p-4 text-center border border-gray-200/60 dark:border-gray-800/60"
+        >
+          <div
+            class="bg-green-100 dark:bg-green-900/30 w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-2"
+          >
+            <i
+              data-lucide="zap"
+              class="w-5 h-5 text-green-600 dark:text-green-400"
+            ></i>
+          </div>
+          <p class="text-xs font-bold text-gray-700 dark:text-gray-300">
+            Instant<br />Analysis
+          </p>
+        </div>
+        <div
+          class="bg-white/80 dark:bg-gray-900/60 backdrop-blur rounded-2xl p-4 text-center border border-gray-200/60 dark:border-gray-800/60"
+        >
+          <div
+            class="bg-blue-100 dark:bg-blue-900/30 w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-2"
+          >
+            <i
+              data-lucide="brain"
+              class="w-5 h-5 text-blue-600 dark:text-blue-400"
+            ></i>
+          </div>
+          <p class="text-xs font-bold text-gray-700 dark:text-gray-300">
+            AI<br />Powered
+          </p>
+        </div>
+        <div
+          class="bg-white/80 dark:bg-gray-900/60 backdrop-blur rounded-2xl p-4 text-center border border-gray-200/60 dark:border-gray-800/60"
+        >
+          <div
+            class="bg-amber-100 dark:bg-amber-900/30 w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-2"
+          >
+            <i
+              data-lucide="pill"
+              class="w-5 h-5 text-amber-600 dark:text-amber-400"
+            ></i>
+          </div>
+          <p class="text-xs font-bold text-gray-700 dark:text-gray-300">
+            Treatment<br />Plans
+          </p>
+        </div>
+      </div>
+    </main>
+
+    <!-- ═══════════════════════ FOOTER ═══════════════════════ -->
+    <footer
+      class="py-6 text-center px-4 relative z-10 no-print border-t border-gray-200/50 dark:border-gray-800/50"
+    >
+      <p
+        class="text-xs text-gray-400 dark:text-gray-500 max-w-md mx-auto leading-relaxed font-medium"
+      >
+        SEHAT uses AI models trained on public agricultural datasets. Always
+        consult local agricultural extension officers for severe crop issues.
+      </p>
+    </footer>
+
+    <!-- ═══════════════════════ APP LOGIC ═══════════════════════ -->
+    <script>
+      (function () {
+        "use strict";
+
+        // ── Initialize Icons ──
+        lucide.createIcons();
+
+        // ── Theme ──
+        const themeBtn = document.getElementById("themeToggleBtn");
+        const themeIcon = document.getElementById("themeIcon");
+
+        function syncThemeIcon() {
+          const isDark = document.documentElement.classList.contains("dark");
+          themeIcon.setAttribute("data-lucide", isDark ? "sun" : "moon");
+          lucide.createIcons();
+        }
+        syncThemeIcon();
+
+        themeBtn.addEventListener("click", () => {
+          document.documentElement.classList.toggle("dark");
+          const isDark = document.documentElement.classList.contains("dark");
+          localStorage.setItem("sehat-theme", isDark ? "dark" : "light");
+          syncThemeIcon();
+        });
+
+        // ── Configuration ──
+        const API_ENDPOINT = "http://127.0.0.1:8000/predict";
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+        const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/jpg"];
+
+        // ── DOM References ──
+        const dropzone = document.getElementById("dropzone");
+        const fileInput = document.getElementById("fileInput");
+        const uploadArea = document.getElementById("uploadArea");
+        const previewArea = document.getElementById("previewArea");
+        const imagePreview = document.getElementById("imagePreview");
+        const analyzeBtn = document.getElementById("analyzeBtn");
+        const removeBtn = document.getElementById("removeBtn");
+        const loadingArea = document.getElementById("loadingArea");
+        const resultArea = document.getElementById("resultArea");
+        const resetBtn = document.getElementById("resetBtn");
+        const toast = document.getElementById("toast");
+        const toastMessage = document.getElementById("toastMessage");
+        const featuresStrip = document.getElementById("featuresStrip");
+
+        // Result DOM
+        const resultCrop = document.getElementById("resultCrop");
+        const resultDisease = document.getElementById("resultDisease");
+        const resultConfidence = document.getElementById("resultConfidence");
+        const confidenceWrap = document.getElementById("confidenceWrap");
+        const confidenceCircle = document.getElementById("confidenceCircle");
+        const treatmentList = document.getElementById("treatmentList");
+        const shareBtn = document.getElementById("shareBtn");
+        const printBtn = document.getElementById("printBtn");
+
+        // History DOM
+        const historySection = document.getElementById("historySection");
+        const historyGrid = document.getElementById("historyGrid");
+        const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+
+        // State
+        let currentFile = null;
+        let currentResultData = null;
+
+        // ══════════════════════════════
+        //  STEPPER
+        // ══════════════════════════════
+        function updateStepper(step) {
+          const line = document.getElementById("step-line");
+          const icons = [
+            document.getElementById("step1-icon"),
+            document.getElementById("step2-icon"),
+            document.getElementById("step3-icon"),
+          ];
+          const texts = [
+            null,
+            document.getElementById("step2-text"),
+            document.getElementById("step3-text"),
+          ];
+
+          const maxW =
+            document.querySelector("#step1-wrap")?.parentElement?.offsetWidth -
+              40 || 300;
+
+          // Reset
+          icons.forEach((el, i) => {
+            if (i === 0) {
+              el.className =
+                "w-10 h-10 rounded-full bg-green-600 text-white flex items-center justify-center text-sm font-bold shadow-lg shadow-green-600/30 transition-all duration-300 z-10";
+            } else {
+              el.className =
+                "w-10 h-10 rounded-full bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 text-gray-400 flex items-center justify-center text-sm font-bold transition-all duration-300 z-10";
+              if (texts[i]) {
+                texts[i].className =
+                  "text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider transition-colors";
+              }
+            }
+          });
+
+          const activeClass =
+            "w-10 h-10 rounded-full bg-green-600 text-white flex items-center justify-center text-sm font-bold shadow-lg shadow-green-600/30 transition-all duration-300 z-10";
+
+          if (step >= 1) line.style.width = "0%";
+          if (step >= 2) {
+            line.style.width = "50%";
+            icons[1].className = activeClass;
+            if (texts[1]) {
+              texts[1].className =
+                "text-[10px] sm:text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wider transition-colors";
+            }
+          }
+          if (step >= 3) {
+            line.style.width = "calc(100% - 40px)";
+            icons[2].className = activeClass;
+            if (texts[2]) {
+              texts[2].className =
+                "text-[10px] sm:text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wider transition-colors";
+            }
+          }
+        }
+
+        // ══════════════════════════════
+        //  HISTORY
+        // ══════════════════════════════
+        function loadHistory() {
+          const history = JSON.parse(
+            localStorage.getItem("sehat_history") || "[]",
+          );
+          if (history.length > 0) {
+            historySection.classList.remove("hidden-state");
+            clearHistoryBtn.classList.remove("hidden");
+            historyGrid.innerHTML = "";
+
+            history.forEach((item) => {
+              const isHealthy = item.disease.toLowerCase().includes("healthy");
+              const card = document.createElement("div");
+              card.className =
+                "bg-white dark:bg-gray-900 p-3.5 rounded-xl shadow-sm border border-gray-200/60 dark:border-gray-800/60 flex items-center gap-3 hover:shadow-md transition-shadow cursor-default";
+              card.innerHTML = `
+                        <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isHealthy ? "bg-green-100 dark:bg-green-900/30" : "bg-amber-100 dark:bg-amber-900/30"}">
+                            <i data-lucide="${isHealthy ? "check-circle" : "alert-circle"}" class="w-4 h-4 ${isHealthy ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400"}"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs font-bold text-gray-400 uppercase truncate">${item.crop}</p>
+                            <p class="text-sm font-bold ${isHealthy ? "text-green-600 dark:text-green-400" : "text-gray-800 dark:text-gray-200"} truncate">${item.disease}</p>
+                        </div>
+                        <span class="text-[10px] text-gray-400 flex-shrink-0">${item.date}</span>
+                    `;
+              historyGrid.appendChild(card);
+            });
+            lucide.createIcons();
+          } else {
+            historySection.classList.add("hidden-state");
+          }
+        }
+
+        function saveToHistory(data) {
+          const history = JSON.parse(
+            localStorage.getItem("sehat_history") || "[]",
+          );
+          history.unshift({
+            id: Date.now(),
+            date: new Date().toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+            }),
+            crop: data.crop.replace(/_/g, " "),
+            disease: data.disease.replace(/_/g, " "),
+          });
+          if (history.length > 4) history.pop();
+          localStorage.setItem("sehat_history", JSON.stringify(history));
+          loadHistory();
+        }
+
+        clearHistoryBtn.addEventListener("click", () => {
+          localStorage.removeItem("sehat_history");
+          loadHistory();
+        });
+
+        loadHistory();
+
+        // ══════════════════════════════
+        //  SHARE & PRINT
+        // ══════════════════════════════
+        printBtn.addEventListener("click", () => window.print());
+
+        shareBtn.addEventListener("click", async () => {
+          if (navigator.share && currentResultData) {
+            try {
+              await navigator.share({
+                title: "SEHAT Plant Diagnosis",
+                text: `Crop: ${currentResultData.crop}\nDisease: ${currentResultData.disease}\nTreatment: ${currentResultData.treatment[0]}...`,
+              });
+            } catch (e) {
+              console.log("Share cancelled", e);
+            }
+          } else {
+            showError("Sharing not supported on this browser.");
+            setTimeout(hideError, 3000);
+          }
+        });
+
+        // ══════════════════════════════
+        //  UPLOAD HANDLERS
+        // ══════════════════════════════
+        dropzone.addEventListener("click", () => fileInput.click());
+        dropzone.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            fileInput.click();
+          }
+        });
+
+        dropzone.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          dropzone.classList.add("dropzone-active");
+        });
+        dropzone.addEventListener("dragleave", (e) => {
+          e.preventDefault();
+          dropzone.classList.remove("dropzone-active");
+        });
+        dropzone.addEventListener("drop", (e) => {
+          e.preventDefault();
+          dropzone.classList.remove("dropzone-active");
+          if (e.dataTransfer.files?.length > 0)
+            handleFileSelect(e.dataTransfer.files[0]);
+        });
+
+        fileInput.addEventListener("change", (e) => {
+          if (e.target.files?.length > 0) handleFileSelect(e.target.files[0]);
+        });
+
+        removeBtn.addEventListener("click", resetUI);
+        resetBtn.addEventListener("click", resetUI);
+        analyzeBtn.addEventListener("click", uploadAndAnalyze);
+
+        // ══════════════════════════════
+        //  CORE FUNCTIONS
+        // ══════════════════════════════
+        function handleFileSelect(file) {
+          hideError();
+          if (!ALLOWED_TYPES.includes(file.type)) {
+            showError("Invalid format. Please upload a JPG or PNG image.");
+            return;
+          }
+          if (file.size > MAX_FILE_SIZE) {
+            showError("File too large. Maximum size is 10 MB.");
+            return;
+          }
+
+          currentFile = file;
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            imagePreview.src = e.target.result;
+            uploadArea.classList.add("hidden-state");
+            featuresStrip.classList.add("hidden-state");
+            previewArea.classList.remove("hidden-state");
+            previewArea.style.animation =
+              "slideRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards";
+            updateStepper(1);
+          };
+          reader.readAsDataURL(file);
+        }
+
+        async function uploadAndAnalyze() {
+          if (!currentFile) return;
+
+          previewArea.classList.add("hidden-state");
+          loadingArea.classList.remove("hidden-state");
+          hideError();
+          updateStepper(2);
+
+          const formData = new FormData();
+          formData.append("file", currentFile);
+
+          try {
+            const response = await fetch(API_ENDPOINT, {
+              method: "POST",
+              body: formData,
+            });
+            if (!response.ok)
+              throw new Error(`Server error: ${response.status}`);
+
+            const data = await response.json();
+            if (data.status === "success") {
+              displayResults(data);
+            } else {
+              throw new Error(data.message || "Prediction failed.");
+            }
+          } catch (error) {
+            console.error("Prediction Error:", error);
+            loadingArea.classList.add("hidden-state");
+            previewArea.classList.remove("hidden-state");
+            updateStepper(1);
+            showError(
+              "Unable to connect to AI server. Please ensure the backend is running and try again.",
+            );
+          }
+        }
+
+        function displayResults(data) {
+          currentResultData = data;
+          loadingArea.classList.add("hidden-state");
+          resultArea.classList.remove("hidden-state");
+          resultArea.style.animation =
+            "slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards";
+          updateStepper(3);
+
+          // Crop
+          resultCrop.textContent = data.crop.replace(/_/g, " ");
+
+          // Disease
+          const diseaseText = data.disease.replace(/_/g, " ");
+          const isHealthy = diseaseText.toLowerCase().includes("healthy");
+
+          if (isHealthy) {
+            resultDisease.textContent = "✓ Healthy Plant";
+            resultDisease.className =
+              "text-3xl sm:text-4xl font-black capitalize tracking-tight leading-tight mb-5 shimmer-text";
+          } else {
+            resultDisease.textContent = diseaseText;
+            resultDisease.className =
+              "text-3xl sm:text-4xl font-black capitalize tracking-tight leading-tight mb-5 text-amber-600 dark:text-amber-400";
+          }
+
+          // Confidence Ring
+          if (data.confidence !== undefined && data.confidence !== null) {
+            confidenceWrap.classList.remove("hidden-state");
+            const pct = Math.round(data.confidence * 100);
+            resultConfidence.textContent = pct;
+            const circumference = 2 * Math.PI * 42; // ~263.9
+            const offset = circumference - (pct / 100) * circumference;
+            // Animate after a frame
+            confidenceCircle.style.strokeDashoffset = circumference;
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                confidenceCircle.style.strokeDashoffset = offset;
+              });
+            });
+          } else {
+            confidenceWrap.classList.add("hidden-state");
+          }
+
+          // Treatments
+          treatmentList.innerHTML = "";
+          if (data.treatment?.length > 0) {
+            data.treatment.forEach((step, i) => {
+              const li = document.createElement("li");
+              li.className =
+                "flex items-start gap-3 bg-gray-50 dark:bg-gray-800/60 p-4 rounded-xl border border-gray-200/60 dark:border-gray-700/60 transition-colors";
+              li.style.animation = `slideUp 0.4s ${0.1 * (i + 1)}s cubic-bezier(0.16, 1, 0.3, 1) both`;
+              li.innerHTML = `
+                        <div class="w-7 h-7 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span class="text-xs font-extrabold text-green-600 dark:text-green-400">${i + 1}</span>
+                        </div>
+                        <span class="text-gray-700 dark:text-gray-200 leading-relaxed font-semibold text-sm sm:text-[15px]">${step}</span>
+                    `;
+              treatmentList.appendChild(li);
+            });
+          } else {
+            treatmentList.innerHTML = `<li class="text-gray-400 italic p-4 text-center bg-gray-50 dark:bg-gray-800 rounded-xl text-sm">No specific treatments available for this diagnosis.</li>`;
+          }
+
+          lucide.createIcons();
+          saveToHistory(data);
+        }
+
+        function resetUI() {
+          currentFile = null;
+          currentResultData = null;
+          fileInput.value = "";
+          imagePreview.src = "";
+
+          resultArea.classList.add("hidden-state");
+          previewArea.classList.add("hidden-state");
+          loadingArea.classList.add("hidden-state");
+
+          uploadArea.classList.remove("hidden-state");
+          featuresStrip.classList.remove("hidden-state");
+          uploadArea.style.animation = "fadeIn 0.4s ease-out forwards";
+
+          updateStepper(1);
+          hideError();
+        }
+
+        function showError(message) {
+          toastMessage.textContent = message;
+          toast.classList.remove("hidden-state");
+          toast.style.animation =
+            "slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards";
+        }
+
+        function hideError() {
+          toast.classList.add("hidden-state");
+        }
+      })();
+    </script>
+  </body>
+</html>

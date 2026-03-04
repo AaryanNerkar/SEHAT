@@ -1,0 +1,22 @@
+# Modular Plant Disease Detection Configuration
+
+# Model Parameters
+img_size: 224
+batch_size: 32
+epochs: 25
+learning_rate: 0.0001
+fine_tune_epochs: 10
+fine_tune_learning_rate: 0.00001
+
+# Paths
+dataset_dir: "./dataset"
+models_dir: "./models"
+
+# Augmentation Parameters
+rotation_range: 20
+width_shift_range: 0.1
+height_shift_range: 0.1
+shear_range: 0.1
+zoom_range: 0.1
+horizontal_flip: true
+val_split: 0.2
