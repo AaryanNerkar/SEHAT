@@ -748,7 +748,7 @@
         });
 
         // ── Configuration ──
-        const API_ENDPOINT = "https://sehat-backend-b14r.onrender.com/predict";
+        const API_ENDPOINT = "https://sehat-production-866e.up.railway.app/predict";
         const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
         const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/jpg"];
 
@@ -998,7 +998,7 @@
           formData.append("file", currentFile);
 
           try {
-            const response = await fetch(API_ENDPOINT, {
+            const response = await fetch(_ENDPOINT, {
               method: "POST",
               body: formData,
             });
@@ -1121,5 +1121,6 @@
     </script>
   </body>
 </html>
+
 
 
