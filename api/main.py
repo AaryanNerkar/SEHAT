@@ -12,10 +12,10 @@ import traceback
 
 app = FastAPI(title="SEHAT API", description="AI Plant Disease Detection")
 
-# ── CORS – allow frontend from any origin ──
+# Enable CORS for frontend requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # allow requests from any frontend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
